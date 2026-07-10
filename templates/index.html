@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Market App{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Autocomplete styles */
+    .autocomplete-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 0 0 8px 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .autocomplete-dropdown.show {
+        display: block;
+    }
+    
+    .autocomplete-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s ease;
+    }
+    
+    .autocomplete-item:hover {
+        background: #f0f4ff;
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    .autocomplete-item .market-name {
+        font-weight: 500;
+        color: #2d3748;
+    }
+    
+    .autocomplete-item .market-location {
+        font-size: 0.85rem;
+        color: #718096;
+    }
+    
+    .autocomplete-item .market-type-badge-small {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+    
+    .badge-supermarket {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .badge-local {
+        background: #4299e1;
+        color: white;
+    }
+    
+    .search-wrapper {
+        position: relative;
+    }
+    
+    .search-wrapper .form-control {
+        padding-right: 40px;
+    }
+    
+    .search-wrapper .clear-search {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #a0aec0;
+        cursor: pointer;
+        display: none;
+        padding: 5px;
+    }
+    
+    .search-wrapper .clear-search:hover {
+        color: #e53e3e;
+    }
+    
+    .search-wrapper .clear-search.show {
+        display: block;
+    }
+    
+    /* Highlight matching text */
+    .highlight {
+        background: #fefcbf;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5">Supermarkets & Local Markets</h1>
+        <p class="text-muted">Find and order from markets in your area</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('register_market') }}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Register Market
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <form method="GET" action="{{ url_for('index') }}" class="row g-3" id="searchForm">
+            <div class="col-md-4">
+                <div class="search-wrapper">
+                    <input type="text" class="form-control" id="searchInput" name="search" 
+                           placeholder="Search by market name or town..." 
+                           value="{{ request.args.get('search', '') }}"
+                           autocomplete="off">
+                    <button type="button" class="clear-search" id="clearSearch">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                    <!-- Autocomplete Dropdown -->
+                    <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="type" id="marketType">
+                    <option value="">All Types</option>
+                    <option value="supermarket" {% if request.args.get('type') == 'supermarket' %}selected{% endif %}>
+                        Supermarkets
+                    </option>
+                    <option value="local" {% if request.args.get('type') == 'local' %}selected{% endif %}>
+                        Local Markets
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="district" id="districtFilter">
+                    <option value="">All Districts</option>
+                    {% for district in districts %}
+                        <option value="{{ district }}" {% if request.args.get('district') == district %}selected{% endif %}>
+                            {{ district }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Markets Grid --> 
+<div class="row g-4">
+    {% if markets %}
+        {% for market in markets %}
+            <div class="col-lg-4 col-md-6">
+                <a href="{{ url_for('market_detail', market_id=market.id) }}" class="text-decoration-none">
+                    <div class="card market-card h-100">
+                        <div class="card-stats">
+                            <i class="fas fa-shopping-cart text-primary"></i> 
+                            {{ market.orders|length }}
+                        </div>
+                        
+                        {% if market.image1 %}
+                            <img src="{{ market.image1 }}" 
+                                 class="card-img-top" alt="{{ market.name }}"
+                                 style="height: 220px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top-placeholder">
+                                <i class="fas fa-store fa-5x text-secondary" style="opacity: 0.3;"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">{{ market.name }}</h5>
+                            <div class="mb-2">
+                                {% if market.market_type == 'supermarket' %}
+                                    <span class="market-type-badge supermarket">
+                                        <i class="fas fa-building"></i> Supermarket
+                                    </span>
+                                {% else %}
+                                    <span class="market-type-badge local">
+                                        <i class="fas fa-store-alt"></i> Local Market
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <p class="card-text">
+                                <i class="fas fa-map-marker-alt text-danger"></i> 
+                                {{ market.district }}, {{ market.town }}
+                                <br>
+                                <i class="fas fa-phone text-success"></i> 
+                                {{ market.phone }}
+                            </p>
+                            <small class="text-muted">
+                                <i class="far fa-calendar-alt"></i> 
+                                Registered {{ market.created_at.strftime('%b %d, %Y') }}
+                            </small>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn view-btn text-white w-100">
+                                <i class="fas fa-eye"></i> View Details
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fas fa-store-alt"></i>
+                <h4>No Markets Found</h4>
+                <p>Try adjusting your search or filter criteria.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-undo"></i> Clear Filters
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Pagination (if needed) -->
+{% if markets and markets|length > 12 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1">Previous</a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">Next</a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const dropdown = document.getElementById('autocompleteDropdown');
+        const clearBtn = document.getElementById('clearSearch');
+        const searchForm = document.getElementById('searchForm');
+        
+        // Get all markets for autocomplete
+        let allMarkets = [];
+        
+        // Fetch markets from API
+        fetch('/api/markets')
+            .then(response => response.json())
+            .then(data => {
+                allMarkets = data;
+            })
+            .catch(error => {
+                console.error('Error fetching markets:', error);
+            });
+        
+        // Show/hide clear button
+        searchInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                clearBtn.classList.add('show');
+            } else {
+                clearBtn.classList.remove('show');
+                dropdown.classList.remove('show');
+            }
+            
+            // Get suggestions
+            const query = this.value.toLowerCase().trim();
+            if (query.length > 0) {
+                const suggestions = getSuggestions(query);
+                showSuggestions(suggestions);
+            } else {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Clear search
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            this.classList.remove('show');
+            dropdown.classList.remove('show');
+            searchInput.focus();
+            // Trigger search
+            searchForm.submit();
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Keyboard navigation
+        searchInput.addEventListener('keydown', function(e) {
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+            if (items.length === 0) return;
+            
+            let currentIndex = -1;
+            items.forEach((item, index) => {
+                if (item.classList.contains('active')) {
+                    currentIndex = index;
+                    item.classList.remove('active');
+                }
+            });
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = Math.min(currentIndex + 1, items.length - 1);
+                items[nextIndex].classList.add('active');
+                items[nextIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = Math.max(currentIndex - 1, 0);
+                items[prevIndex].classList.add('active');
+                items[prevIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const activeItem = dropdown.querySelector('.autocomplete-item.active');
+                if (activeItem) {
+                    activeItem.click();
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('show');
+                searchInput.blur();
+            }
+        });
+        
+        function getSuggestions(query) {
+            if (!allMarkets.length || query.length < 1) return [];
+            
+            const results = [];
+            const seen = new Set();
+            
+            // Search by town, district, or market name
+            allMarkets.forEach(market => {
+                const townMatch = market.town && market.town.toLowerCase().includes(query);
+                const districtMatch = market.district && market.district.toLowerCase().includes(query);
+                const nameMatch = market.name && market.name.toLowerCase().includes(query);
+                
+                if (townMatch || districtMatch || nameMatch) {
+                    const key = `${market.town}-${market.district}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        results.push({
+                            town: market.town,
+                            district: market.district,
+                            market_count: 1,
+                            markets: [market]
+                        });
+                    } else {
+                        const existing = results.find(r => r.town === market.town && r.district === market.district);
+                        if (existing) {
+                            existing.market_count += 1;
+                            existing.markets.push(market);
+                        }
+                    }
+                }
+            });
+            
+            // Also add individual market suggestions for name search
+            allMarkets.forEach(market => {
+                if (market.name.toLowerCase().includes(query)) {
+                    // Check if already added as town/district
+                    const exists = results.some(r => 
+                        r.town === market.town && 
+                        r.district === market.district &&
+                        r.markets.some(m => m.id === market.id)
+                    );
+                    if (!exists) {
+                        results.push({
+                            town: market.town,
+                            district: market.district,
+                            market_count: 1,
+                            markets: [market],
+                            is_individual: true
+                        });
+                    }
+                }
+            });
+            
+            return results.slice(0, 10);
+        }
+        
+        function showSuggestions(suggestions) {
+            if (suggestions.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+            
+            dropdown.innerHTML = '';
+            
+            suggestions.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                
+                let marketNames = item.markets.map(m => m.name).join(', ');
+                if (marketNames.length > 40) {
+                    marketNames = marketNames.substring(0, 40) + '...';
+                }
+                
+                // Highlight matching text
+                const query = searchInput.value.toLowerCase().trim();
+                let displayText = item.is_individual ? marketNames : `${item.town}, ${item.district}`;
+                
+                // Create HTML with highlighting
+                let html = '';
+                if (item.is_individual) {
+                    const market = item.markets[0];
+                    const nameHtml = highlightText(market.name, query);
+                    const locationHtml = `${market.town}, ${market.district}`;
+                    html = `
+                        <div class="market-name">${nameHtml}</div>
+                        <div class="market-location"><i class="fas fa-map-marker-alt"></i> ${locationHtml}</div>
+                        <span class="market-type-badge-small ${market.market_type === 'supermarket' ? 'badge-supermarket' : 'badge-local'}">
+                            ${market.market_type}
+                        </span>
+                    `;
+                } else {
+                    const locationHtml = highlightText(`${item.town}, ${item.district}`, query);
+                    html = `
+                        <div class="market-name">📍 ${locationHtml}</div>
+                        <div class="market-location">
+                            <i class="fas fa-store"></i> ${item.market_count} market${item.market_count > 1 ? 's' : ''} in this area
+                        </div>
+                    `;
+                }
+                
+                div.innerHTML = html;
+                
+                // Click handler
+                div.addEventListener('click', function() {
+                    if (item.is_individual) {
+                        // Go to individual market
+                        const market = item.markets[0];
+                        window.location.href = `/market/${market.id}`;
+                    } else {
+                        // Search by town
+                        searchInput.value = item.town;
+                        dropdown.classList.remove('show');
+                        searchForm.submit();
+                    }
+                });
+                
+                dropdown.appendChild(div);
+            });
+            
+            dropdown.classList.add('show');
+        }
+        
+        function highlightText(text, query) {
+            if (!query) return text;
+            const index = text.toLowerCase().indexOf(query.toLowerCase());
+            if (index === -1) return text;
+            return text.substring(0, index) + 
+                   '<span class="highlight">' + 
+                   text.substring(index, index + query.length) + 
+                   '</span>' + 
+                   text.substring(index + query.length);
+        }
+    });
+</script>
+{% endblock %}

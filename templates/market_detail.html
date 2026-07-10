@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ market.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Media Carousel -->
+        <div class="card shadow mb-4">
+            <div class="card-body p-0">
+                <div id="marketCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        {% if market.image1 %}
+                            <div class="carousel-item active">
+                                <img src="{{ market.image1 }}" 
+                                     class="d-block w-100" alt="{{ market.name }}" 
+                                     style="height: 450px; object-fit: cover;">
+                            </div>
+                        {% endif %}
+                        {% if market.image2 %}
+                            <div class="carousel-item {% if not market.image1 %}active{% endif %}">
+                                <img src="{{ market.image2 }}" 
+                                     class="d-block w-100" alt="{{ market.name }}" 
+                                     style="height: 450px; object-fit: cover;">
+                            </div>
+                        {% endif %}
+                        {% if market.video %}
+                            <div class="carousel-item {% if not market.image1 and not market.image2 %}active{% endif %}">
+                                <video controls style="width: 100%; height: 450px; background: #000;">
+                                    <source src="{{ market.video }}" type="video/mp4">
+                                    <source src="{{ market.video }}" type="video/webm">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if market.image1 or market.image2 or market.video %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#marketCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#marketCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h3 class="card-title">{{ market.name }}</h3>
+                <div class="mb-3">
+                    <span class="badge {% if market.market_type == 'supermarket' %}bg-success{% else %}bg-info{% endif %} fs-6">
+                        <i class="fas fa-{% if market.market_type == 'supermarket' %}building{% else %}store{% endif %}"></i>
+                        {{ market.market_type|title }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <p><i class="fas fa-map-marker-alt text-danger"></i> <strong>District:</strong> {{ market.district }}</p>
+                    <p><i class="fas fa-city text-primary"></i> <strong>Town:</strong> {{ market.town }}</p>
+                    <p><i class="fas fa-phone text-success"></i> <strong>Phone:</strong> {{ market.phone }}</p>
+                    {% if market.email %}
+                        <p><i class="fas fa-envelope text-info"></i> <strong>Email:</strong> <a href="mailto:{{ market.email }}">{{ market.email }}</a></p>
+                    {% endif %}
+                    <p><i class="fas fa-calendar text-muted"></i> <strong>Registered:</strong> {{ market.created_at.strftime('%B %d, %Y') }}</p>
+                </div>
+
+                <hr>
+
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('place_order', market_id=market.id) }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-cart"></i> Place Order
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Markets
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

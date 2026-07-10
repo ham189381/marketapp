@@ -1,0 +1,74 @@
+/* Custom styles */
+.market-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.market-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.market-card .card-img-top {
+    border-bottom: 2px solid #f0f0f0;
+}
+
+/* Video styling */
+video {
+    background-color: #000;
+    border-radius: 4px;
+}
+
+/* Carousel styling */
+.carousel-item {
+    background-color: #f8f9fa;
+}
+
+/* Form styling */
+form .card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .market-card {
+        margin-bottom: 20px;
+    }
+    
+    .carousel-item img,
+    .carousel-item video {
+        height: 250px !important;
+    }
+}
+
+/* Alert customizations */
+.alert {
+    border-radius: 8px;
+}
+
+/* Button styling */
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+/* Badge styling */
+.badge {
+    font-size: 0.9rem;
+    padding: 5px 12px;
+}
+
+/* Loading spinner for location */
+.location-loading {
+    color: #6c757d;
+}
+
+.location-success {
+    color: #28a745;
+}
+
+.location-error {
+    color: #dc3545;
+}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Place Order - {{ market.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-shopping-cart"></i> 
+                    Place Order from {{ market.name }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="orderForm">
+                    <!-- Customer Information -->
+                    <div class="mb-3">
+                        <label for="customer_name" class="form-label required-field">Your Name</label>
+                        <input type="text" class="form-control" id="customer_name" name="customer_name" 
+                               required maxlength="100" placeholder="Enter your full name">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="customer_phone" class="form-label required-field">Your Phone</label>
+                        <input type="tel" class="form-control" id="customer_phone" name="customer_phone" 
+                               required placeholder="Enter your phone number">
+                        <small class="text-muted">We'll use this to contact you about your order</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="customer_email" class="form-label optional-field">Your Email Address</label>
+                        <input type="email" class="form-control" id="customer_email" name="customer_email" 
+                               placeholder="Enter your email for order confirmation">
+                        <small class="text-muted">Provide your email to receive order confirmation and updates</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="items_needed" class="form-label required-field">Items Needed</label>
+                        <textarea class="form-control" id="items_needed" name="items_needed" rows="4" 
+                                  required placeholder="List the items you need (e.g., 2kg rice, 1L milk, 500g sugar, etc.)"></textarea>
+                        <small class="text-muted">Be specific about quantities and brands if possible</small>
+                    </div>
+
+                    <hr>
+
+                    <!-- Location -->
+                    <h5 class="mb-3"><i class="fas fa-map-marker-alt text-danger"></i> Your Location</h5>
+                    
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-info" onclick="getLocation()">
+                            <i class="fas fa-location-arrow"></i> Get Current Location
+                        </button>
+                        <span id="location_status" class="ms-2"></span>
+                    </div>
+
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                    <input type="hidden" id="location_address" name="location_address">
+
+                    <div id="location_details" style="display: none;" class="mb-3">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="location_display"></span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Your location will be shared with the market to facilitate delivery.
+                        If you're unable to share your location, please provide your address in the items description.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-check"></i> Place Order
+                        </button>
+                        <a href="{{ url_for('market_detail', market_id=market.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add CSS for optional field styling -->
+<style>
+    .optional-field::after {
+        content: " (Optional)";
+        color: #6c757d;
+        font-weight: normal;
+        font-size: 0.9em;
+    }
+</style>
+
+<script src="{{ url_for('static', filename='js/location.js') }}"></script>
+{% endblock %}
