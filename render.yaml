@@ -1,5 +1,5 @@
-# render.yaml
 services:
+  # ===== WEB SERVICE =====
   - type: web
     name: market-app
     env: python
@@ -20,13 +20,30 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USE_TLS
+        sync: false
+      - key: MAIL_USE_SSL
+        sync: false
+      - key: MAIL_DEBUG
+        sync: false
+      - key: MAIL_SUPPRESS_SEND
+        sync: false
       - key: PYTHON_VERSION
         value: 3.9.0
 
-  - type: postgresql
+  # ===== POSTGRESQL DATABASE =====
+  - type: postgres
     name: market-db
-    ipAllowList: []
     plan: free
-    maxConnections: 10
     database: market_db
     user: market_user
