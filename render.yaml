@@ -41,9 +41,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.0
 
-  # ===== POSTGRESQL DATABASE =====
-  - type: pgsql
-    name: market-db
+# ===== POSTGRESQL DATABASE =====
+databases:
+  - name: market-db
     plan: free
     database: market_db
     user: market_user
