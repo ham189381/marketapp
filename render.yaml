@@ -42,7 +42,7 @@ services:
         value: 3.9.0
 
   # ===== POSTGRESQL DATABASE =====
-  - type: postgres
+  - type: pgsql
     name: market-db
     plan: free
     database: market_db
