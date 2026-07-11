@@ -45,5 +45,5 @@ services:
 databases:
   - name: market-db
     plan: free
-    database: market_db
+    databaseName: market_db      # Changed from `database` to `databaseName`
     user: market_user
