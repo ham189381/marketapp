@@ -1,0 +1,7 @@
+market app database:
+
+INTERNAL URL
+postgresql://marketappdb_user:MnGSJgUfmnnsyvL5XPi0J1VNa4tzNbMv@dpg-d98gl5mrnols73f9ogf0-a/marketappdb
+
+EXTERNAL URL
+postgresql://marketappdb_user:MnGSJgUfmnnsyvL5XPi0J1VNa4tzNbMv@dpg-d98gl5mrnols73f9ogf0-a.oregon-postgres.render.com/marketappdb
