@@ -3,6 +3,7 @@ services:
   - type: web
     name: market-app
     env: python
+    plan: free          # <--- Added here
     buildCommand: |
       pip install -r requirements.txt
       python -c "from app import app, db; db.create_all()"
@@ -44,6 +45,6 @@ services:
 # ===== POSTGRESQL DATABASE =====
 databases:
   - name: market-db
-    plan: free
-    databaseName: market_db      # Changed from `database` to `databaseName`
+    plan: free          # Already correct!
+    databaseName: market_db
     user: market_user
