@@ -40,7 +40,7 @@ services:
       - key: MAIL_SUPPRESS_SEND
         sync: false
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.11.0
 
 # ===== POSTGRESQL DATABASE =====
  databases:
