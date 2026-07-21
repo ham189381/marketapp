@@ -96,4 +96,124 @@
 </style>
 
 <script src="{{ url_for('static', filename='js/location.js') }}"></script>
+
+<!-- Add automatic location detection script -->
+<script>
+// Automatic location detection when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if browser supports geolocation
+    if (navigator.geolocation) {
+        // Show status
+        document.getElementById('location_status').innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
+        
+        // Get location automatically after a short delay
+        setTimeout(function() {
+            getLocation();
+        }, 1000);
+    } else {
+        document.getElementById('location_status').innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocation not supported</span>';
+    }
+});
+
+// Enhanced getLocation function with better error handling
+function getLocation() {
+    const statusEl = document.getElementById('location_status');
+    
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Geolocation not supported by your browser</span>';
+        return;
+    }
+    
+    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
+    
+    navigator.geolocation.getCurrentPosition(
+        // Success
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Set hidden fields
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            // Show location details
+            const display = document.getElementById('location_display');
+            document.getElementById('location_details').style.display = 'block';
+            display.textContent = `📍 Location captured: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            
+            statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Location captured successfully!</span>';
+            
+            // Try to get address using reverse geocoding
+            getAddressFromCoordinates(lat, lng);
+        },
+        // Error
+        function(error) {
+            let errorMessage = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = '❌ Location access denied. Please allow location access and refresh the page, or enter your address manually in the items description.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = '❌ Location information unavailable. Please enter your address manually in the items description.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = '❌ Location request timed out. Please try again or enter your address manually.';
+                    break;
+                default:
+                    errorMessage = '❌ Error getting location. Please enter your address manually in the items description.';
+                    break;
+            }
+            statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</span>`;
+            document.getElementById('location_details').style.display = 'none';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// Reverse geocoding to get address from coordinates
+function getAddressFromCoordinates(lat, lng) {
+    // Using OpenStreetMap Nominatim API
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.display_name) {
+                document.getElementById('location_address').value = data.display_name;
+                const display = document.getElementById('location_display');
+                display.textContent = `📍 ${data.display_name}`;
+            } else {
+                document.getElementById('location_address').value = `${lat}, ${lng}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error getting address:', error);
+            document.getElementById('location_address').value = `${lat}, ${lng}`;
+        });
+}
+
+// Override the form validation to check if location was captured
+document.getElementById('orderForm').addEventListener('submit', function(e) {
+    const lat = document.getElementById('latitude').value;
+    const lng = document.getElementById('longitude').value;
+    
+    if (!lat || !lng) {
+        // Show warning but allow submission
+        const confirmSubmit = confirm(
+            '⚠️ Location was not captured.\n\n' +
+            'You can still submit the order, but please include your address in the items description.\n\n' +
+            'Do you want to continue?'
+        );
+        if (!confirmSubmit) {
+            e.preventDefault();
+            return false;
+        }
+    }
+    return true;
+});
+</script>
 {% endblock %}
