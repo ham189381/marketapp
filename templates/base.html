@@ -13,7 +13,10 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-store"></i> Market App
+                 <img src="{{ url_for('static', filename='images/ntumwaicon.png') }}" 
+         alt="Logo" 
+         style="height: 20vh; width: auto; margin-right: 0px;">
+         <i style="height: 20vh;">ntumwa</i>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -27,7 +30,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('register_market') }}">
-                            <i class="fas fa-plus-circle"></i> Register Market
+                            <i class="fas fa-plus-circle"></i> Start selling
                         </a>
                     </li>
                     <!-- View Orders Link -->
