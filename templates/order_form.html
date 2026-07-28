@@ -52,7 +52,7 @@
                     <h5 class="mb-3"><i class="fas fa-map-marker-alt text-danger"></i> Your Location</h5>
                     
                     <div class="mb-3">
-                        <button type="button" class="btn btn-info" onclick="getLocation()">
+                        <button type="button" class="btn btn-info" onclick="requestLocation()" id="locationBtn">
                             <i class="fas fa-location-arrow"></i> Get Current Location
                         </button>
                         <span id="location_status" class="ms-2"></span>
@@ -69,10 +69,19 @@
                         </div>
                     </div>
 
+                    <!-- Manual address input as fallback -->
+                    <div class="mb-3">
+                        <label for="manual_address" class="form-label optional-field">Or Enter Your Address Manually</label>
+                        <input type="text" class="form-control" id="manual_address" 
+                               placeholder="Enter your full address (e.g., Kampala, Ntinda, Block 5)">
+                        <small class="text-muted">If you can't share location, enter your address here</small>
+                    </div>
+
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
                         <strong>Note:</strong> Your location will be shared with the market to facilitate delivery.
-                        If you're unable to share your location, please provide your address in the items description.
+                        If you're unable to share your location, please provide your address in the items description
+                        or use the manual address field above.
                     </div>
 
                     <div class="d-grid gap-2">
@@ -97,41 +106,54 @@
         font-weight: normal;
         font-size: 0.9em;
     }
+    
+    #locationBtn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 </style>
 
-<script src="{{ url_for('static', filename='js/location.js') }}"></script>
-
-<!-- Add automatic location detection script -->
 <script>
-// Automatic location detection when page loads
+// Global variable to track if location was requested
+let locationRequested = false;
+
+// Initialize location functionality when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Check if browser supports geolocation
-    if (navigator.geolocation) {
-        // Show status
-        document.getElementById('location_status').innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
-        
-        // Get location automatically after a short delay
-        setTimeout(function() {
-            getLocation();
-        }, 1000);
-    } else {
-        document.getElementById('location_status').innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocation not supported</span>';
+    if (!navigator.geolocation) {
+        document.getElementById('location_status').innerHTML = 
+            '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocation not supported</span>';
+        document.getElementById('locationBtn').disabled = true;
+        return;
     }
+    
+    // Show a prompt to the user
+    const statusEl = document.getElementById('location_status');
+    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-info-circle"></i> Click the button above to share your location for delivery</span>';
+    
+    // Don't automatically request location - wait for user action
+    // This is more user-friendly and works better on mobile
 });
 
-// Enhanced getLocation function with better error handling
-function getLocation() {
+// Enhanced location request function with proper permission handling
+function requestLocation() {
     const statusEl = document.getElementById('location_status');
+    const btn = document.getElementById('locationBtn');
     
     if (!navigator.geolocation) {
         statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Geolocation not supported by your browser</span>';
         return;
     }
     
-    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
+    // Disable button while processing
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
     
+    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Requesting location permission...</span>';
+    
+    // Request location with user permission
     navigator.geolocation.getCurrentPosition(
-        // Success
+        // Success callback
         function(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
@@ -146,33 +168,51 @@ function getLocation() {
             display.textContent = `📍 Location captured: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
             
             statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Location captured successfully!</span>';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Location Captured';
+            btn.className = 'btn btn-success';
             
             // Try to get address using reverse geocoding
             getAddressFromCoordinates(lat, lng);
+            
+            locationRequested = true;
+            btn.disabled = false;
         },
-        // Error
+        // Error callback
         function(error) {
             let errorMessage = '';
+            let userAction = '';
+            
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMessage = '❌ Location access denied. Please allow location access and refresh the page, or enter your address manually in the items description.';
+                    errorMessage = 'Location access was denied.';
+                    userAction = 'Please enable location access in your browser settings and try again, or use the manual address field below.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMessage = '❌ Location information unavailable. Please enter your address manually in the items description.';
+                    errorMessage = 'Location information is unavailable.';
+                    userAction = 'Please use the manual address field below to enter your location.';
                     break;
                 case error.TIMEOUT:
-                    errorMessage = '❌ Location request timed out. Please try again or enter your address manually.';
+                    errorMessage = 'Location request timed out.';
+                    userAction = 'Please try again or use the manual address field below.';
                     break;
                 default:
-                    errorMessage = '❌ Error getting location. Please enter your address manually in the items description.';
+                    errorMessage = 'An unknown error occurred.';
+                    userAction = 'Please use the manual address field below to enter your location.';
                     break;
             }
-            statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</span>`;
-            document.getElementById('location_details').style.display = 'none';
+            
+            statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage} ${userAction}</span>`;
+            
+            // Reset button
+            btn.innerHTML = '<i class="fas fa-location-arrow"></i> Try Again';
+            btn.disabled = false;
+            
+            // Show suggestion to use manual address
+            document.getElementById('manual_address').focus();
         },
         {
             enableHighAccuracy: true,
-            timeout: 10000,
+            timeout: 15000,  // 15 seconds timeout
             maximumAge: 0
         }
     );
@@ -180,12 +220,17 @@ function getLocation() {
 
 // Reverse geocoding to get address from coordinates
 function getAddressFromCoordinates(lat, lng) {
-    // Using OpenStreetMap Nominatim API
+    // Using OpenStreetMap Nominatim API with a timeout
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
     
-    fetch(url)
+    // Set a timeout for the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    fetch(url, { signal: controller.signal })
         .then(response => response.json())
         .then(data => {
+            clearTimeout(timeoutId);
             if (data && data.display_name) {
                 document.getElementById('location_address').value = data.display_name;
                 const display = document.getElementById('location_display');
@@ -195,29 +240,75 @@ function getAddressFromCoordinates(lat, lng) {
             }
         })
         .catch(error => {
+            clearTimeout(timeoutId);
             console.error('Error getting address:', error);
             document.getElementById('location_address').value = `${lat}, ${lng}`;
         });
 }
 
-// Override the form validation to check if location was captured
+// Handle manual address input - copy to hidden field
+document.getElementById('manual_address').addEventListener('input', function() {
+    if (this.value.trim()) {
+        // If user enters manual address, clear location fields
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
+        document.getElementById('location_address').value = this.value.trim();
+        
+        // Update status
+        document.getElementById('location_status').innerHTML = 
+            '<span class="text-info"><i class="fas fa-info-circle"></i> Using manually entered address</span>';
+        
+        // Hide location details if shown
+        document.getElementById('location_details').style.display = 'none';
+    }
+});
+
+// Form validation - check if either location or manual address is provided
 document.getElementById('orderForm').addEventListener('submit', function(e) {
     const lat = document.getElementById('latitude').value;
     const lng = document.getElementById('longitude').value;
+    const manualAddress = document.getElementById('manual_address').value.trim();
+    const locationAddress = document.getElementById('location_address').value;
     
-    if (!lat || !lng) {
-        // Show warning but allow submission
-        const confirmSubmit = confirm(
-            '⚠️ Location was not captured.\n\n' +
-            'You can still submit the order, but please include your address in the items description.\n\n' +
-            'Do you want to continue?'
-        );
-        if (!confirmSubmit) {
-            e.preventDefault();
+    // If no location and no manual address, show warning
+    if ((!lat || !lng) && !manualAddress && !locationAddress) {
+        e.preventDefault();
+        
+        // Show a more user-friendly warning
+        const warningMessage = 
+            '⚠️ Location information is required for delivery.\n\n' +
+            'Please either:\n' +
+            '1. Click the "Get Current Location" button to share your location, OR\n' +
+            '2. Enter your address in the manual address field.\n\n' +
+            'Would you like to go back and provide your location?';
+        
+        if (!confirm(warningMessage)) {
+            // User wants to go back
             return false;
         }
+        
+        // If user wants to continue despite warning (maybe they entered address in items description)
+        return true;
     }
+    
+    // If manual address is provided but hidden fields are empty, use manual address
+    if (manualAddress && !locationAddress) {
+        document.getElementById('location_address').value = manualAddress;
+    }
+    
     return true;
 });
+
+// Add a helper function to check if location is available
+function isLocationAvailable() {
+    return document.getElementById('latitude').value && document.getElementById('longitude').value;
+}
+
+// Show helpful tooltip/prompt on mobile
+if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    // Add mobile-specific help text
+    const statusEl = document.getElementById('location_status');
+    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-info-circle"></i> 📱 Tap the button above to share your location for delivery</span>';
+}
 </script>
 {% endblock %}
