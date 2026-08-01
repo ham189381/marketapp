@@ -557,5 +557,81 @@ def admin_orders():
                          completed_orders=completed_orders,
                          orders_by_market=orders_by_market)
 
+
+#functions to delete markets
+
+
+@app.route('/market/<int:market_id>/delete', methods=['POST', 'GET'])
+def delete_market(market_id):
+    """Delete a registered market and all associated orders"""
+    market = Market.query.get_or_404(market_id)
+    
+    # Check if market has any orders
+    order_count = Order.query.filter_by(market_id=market_id).count()
+    
+    if request.method == 'POST':
+        try:
+            # Get confirmation from form
+            confirm = request.form.get('confirm', 'no')
+            
+            if confirm == 'yes':
+                # Delete all orders associated with this market first
+                Order.query.filter_by(market_id=market_id).delete()
+                
+                # Now delete the market
+                db.session.delete(market)
+                db.session.commit()
+                
+                flash(f'✅ Market "{market.name}" and all its orders have been deleted successfully!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Deletion cancelled.', 'info')
+                return redirect(url_for('market_detail', market_id=market_id))
+                
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error deleting market: {str(e)}', 'danger')
+            return redirect(url_for('market_detail', market_id=market_id))
+    
+    # GET request - show confirmation page
+    return render_template('delete_market.html', market=market, order_count=order_count)
+
+@app.route('/market/<int:market_id>/delete-orders', methods=['POST'])
+def delete_market_orders(market_id):
+    """Delete only the orders for a specific market without deleting the market itself"""
+    market = Market.query.get_or_404(market_id)
+    
+    try:
+        # Count orders before deletion
+        order_count = Order.query.filter_by(market_id=market_id).count()
+        
+        # Delete all orders
+        Order.query.filter_by(market_id=market_id).delete()
+        db.session.commit()
+        
+        flash(f'✅ Deleted {order_count} orders for market "{market.name}" successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error deleting orders: {str(e)}', 'danger')
+    
+    return redirect(url_for('market_detail', market_id=market_id))
+
+@app.route('/admin/markets')
+def manage_markets():
+    """Admin page to manage all markets"""
+    markets = Market.query.order_by(Market.created_at.desc()).all()
+    
+    # Get order count for each market
+    markets_with_counts = []
+    for market in markets:
+        order_count = Order.query.filter_by(market_id=market.id).count()
+        markets_with_counts.append({
+            'market': market,
+            'order_count': order_count
+        })
+    
+    return render_template('manage_markets.html', markets=markets_with_counts)        
+
+
 if __name__ == '__main__':
     app.run(debug=True)
