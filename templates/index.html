@@ -124,51 +124,12 @@
 </div>
 
 <!-- Search and Filter -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <form method="GET" action="{{ url_for('index') }}" class="row g-3" id="searchForm">
-            <div class="col-md-4">
-                <div class="search-wrapper">
-                    <input type="text" class="form-control" id="searchInput" name="search" 
-                           placeholder="Search by market name or town..." 
-                           value="{{ request.args.get('search', '') }}"
-                           autocomplete="off">
-                    <button type="button" class="clear-search" id="clearSearch">
-                        <i class="fas fa-times-circle"></i>
-                    </button>
-                    <!-- Autocomplete Dropdown -->
-                    <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="type" id="marketType">
-                    <option value="">All Types</option>
-                    <option value="supermarket" {% if request.args.get('type') == 'supermarket' %}selected{% endif %}>
-                        Supermarkets
-                    </option>
-                    <option value="local" {% if request.args.get('type') == 'local' %}selected{% endif %}>
-                        Local Markets
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="district" id="districtFilter">
-                    <option value="">All Districts</option>
-                    {% for district in districts %}
-                        <option value="{{ district }}" {% if request.args.get('district') == district %}selected{% endif %}>
-                            {{ district }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-search"></i> Filter
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+
+<!--i have removed this section temporarily . it contained the search and filter for markets--->
+
+
+
+
 
 <!-- Markets Grid --> 
 <div class="row g-4">
