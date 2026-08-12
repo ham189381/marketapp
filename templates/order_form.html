@@ -15,11 +15,20 @@
             <div class="card-body">
                 <form method="POST" id="orderForm">
                     <!-- Customer Information -->
+
+    
                     <div class="mb-3">
-                        <label for="customer_name" class="form-label required-field">Your Name</label>
-                        <input type="text" class="form-control" id="customer_name" name="customer_name" 
-                               required maxlength="100" placeholder="Enter your full name">
+                        <label for="items_needed" class="form-label required-field">Items Needed</label>
+                        <textarea class="form-control" id="items_needed" name="items_needed" rows="4" 
+                                  required placeholder="List the items you need (e.g., 
+                                   matooke:5000sh
+                                   meat:1kg
+                                   2kg rice,
+                                   1L milk, 
+                                   500g sugar, etc.)"></textarea>
+                        <small class="text-muted">Be specific about quantities and brands if possible</small>
                     </div>
+
 
                     <div class="mb-3">
                         <label for="customer_phone" class="form-label required-field">Your Phone</label>
@@ -28,37 +37,13 @@
                         <small class="text-muted">We'll use this to contact you about your order</small>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="customer_email" class="form-label optional-field">Your Email Address</label>
-                        <input type="email" class="form-control" id="customer_email" name="customer_email" 
-                               placeholder="Enter your email for order confirmation">
-                        <small class="text-muted">Provide your email to receive order confirmation and updates</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="items_needed" class="form-label required-field">Items Needed</label>
-                        <textarea class="form-control" id="items_needed" name="items_needed" rows="4" 
-                                  required placeholder="List the items you need (e.g.,
-                            Matooke:10000
-                            Rice:2kg
-                            Dried Fish:30000
-                            milk:2ltrs etc.)"></textarea>
-                        <small class="text-muted">Be specific about quantities and brands if possible</small>
-                    </div>
-
                     <hr>
 
                     <!-- Location -->
                     <h5 class="mb-3"><i class="fas fa-map-marker-alt text-danger"></i> Your Location</h5>
                     
-                    <!-- Location Permission Status Alert -->
-                    <div id="permission_alert" style="display: none;" class="alert alert-warning mb-3">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span id="permission_message"></span>
-                    </div>
-                    
                     <div class="mb-3">
-                        <button type="button" class="btn btn-info" onclick="requestLocation()" id="locationBtn">
+                        <button type="button" class="btn btn-info" onclick="getLocation()">
                             <i class="fas fa-location-arrow"></i> Get Current Location
                         </button>
                         <span id="location_status" class="ms-2"></span>
@@ -75,28 +60,15 @@
                         </div>
                     </div>
 
-                    <!-- Manual address input as fallback -->
-                    <div class="mb-3">
-                        <label for="manual_address" class="form-label required-field">Your Delivery Address</label>
-                        <input type="text" class="form-control" id="manual_address" 
-                               placeholder="Enter your full address (e.g., Kampala, Ntinda, Block 5, House 12)"
-                               required>
-                        <small class="text-muted">Please provide a detailed address for delivery</small>
-                    </div>
-
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        <strong>Note:</strong> 
-                        <ul class="mb-0">
-                            <li>If you allow location access, it will automatically fill your address</li>
-                            <li>If location is not available, please enter your address manually above</li>
-                            <li>For iOS users: If prompted, select "Allow" when asked for location permission</li>
-                        </ul>
+                        <strong>Note:</strong> Your location will be shared with the market to facilitate delivery.
+                        If you're unable to share your location, please provide your address in the items description.
                     </div>
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-check"></i> Send Shopping List
+                            <i class="fas fa-check"></i> Send Shopping list
                         </button>
                         <a href="{{ url_for('market_detail', market_id=market.id) }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Cancel
@@ -116,130 +88,41 @@
         font-weight: normal;
         font-size: 0.9em;
     }
-    
-    #locationBtn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    
-    .location-help {
-        background: #f8f9fa;
-        border-left: 4px solid #17a2b8;
-        padding: 10px 15px;
-        margin: 10px 0;
-        border-radius: 4px;
-    }
-    
-    .browser-icon {
-        font-size: 1.2em;
-        margin-right: 5px;
-    }
 </style>
 
-<script>
-// Global variables
-let locationRequested = false;
-let permissionChecked = false;
+<script src="{{ url_for('static', filename='js/location.js') }}"></script>
 
-// Initialize when page loads
+<!-- Add automatic location detection script -->
+<script>
+// Automatic location detection when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Check if browser supports geolocation
-    if (!navigator.geolocation) {
-        document.getElementById('location_status').innerHTML = 
-            '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocation not supported</span>';
-        document.getElementById('locationBtn').disabled = true;
-        return;
+    if (navigator.geolocation) {
+        // Show status
+        document.getElementById('location_status').innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
+        
+        // Get location automatically after a short delay
+        setTimeout(function() {
+            getLocation();
+        }, 1000);
+    } else {
+        document.getElementById('location_status').innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocation not supported</span>';
     }
-    
-    // Check permission status
-    checkLocationPermission();
-    
-    // Set initial status
-    const statusEl = document.getElementById('location_status');
-    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-info-circle"></i> Click the button above to share your location</span>';
 });
 
-// Check location permission status
-function checkLocationPermission() {
-    if (navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({ name: 'geolocation' })
-            .then(function(permissionStatus) {
-                permissionChecked = true;
-                const alertDiv = document.getElementById('permission_alert');
-                const messageSpan = document.getElementById('permission_message');
-                
-                if (permissionStatus.state === 'denied') {
-                    // Permission is permanently denied
-                    alertDiv.style.display = 'block';
-                    alertDiv.className = 'alert alert-danger mb-3';
-                    messageSpan.innerHTML = `
-                        <strong>Location access is blocked.</strong><br>
-                        Please enable location in your browser settings:
-                        <ul class="mt-2 mb-0">
-                            <li><strong>On iPhone/iPad:</strong> Settings → Safari → Location → Allow</li>
-                            <li><strong>On Android:</strong> Settings → Apps → [Browser] → Permissions → Location → Allow</li>
-                            <li><strong>On Desktop:</strong> Click the lock icon in address bar → Allow location</li>
-                        </ul>
-                        <div class="mt-2">
-                            <small>After enabling, refresh this page and try again.</small>
-                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="location.reload()">
-                                <i class="fas fa-sync"></i> Refresh Page
-                            </button>
-                        </div>
-                    `;
-                    document.getElementById('locationBtn').disabled = true;
-                    document.getElementById('locationBtn').title = 'Location permission blocked in browser settings';
-                } else if (permissionStatus.state === 'prompt') {
-                    // Permission not yet requested - this is normal
-                    alertDiv.style.display = 'none';
-                    document.getElementById('locationBtn').disabled = false;
-                } else if (permissionStatus.state === 'granted') {
-                    // Permission already granted - auto get location
-                    alertDiv.style.display = 'none';
-                    document.getElementById('location_status').innerHTML = 
-                        '<span class="text-success"><i class="fas fa-check-circle"></i> Location permission already granted. Getting location...</span>';
-                    // Auto get location if permission already granted
-                    setTimeout(function() {
-                        requestLocation();
-                    }, 500);
-                }
-                
-                // Listen for permission changes
-                permissionStatus.onchange = function() {
-                    if (this.state === 'granted') {
-                        location.reload();
-                    }
-                };
-            })
-            .catch(function(error) {
-                // Permissions API not supported - fallback
-                console.log('Permissions API not supported, using fallback');
-            });
-    }
-}
-
-// Enhanced location request function
-function requestLocation() {
+// Enhanced getLocation function with better error handling
+function getLocation() {
     const statusEl = document.getElementById('location_status');
-    const btn = document.getElementById('locationBtn');
-    const alertDiv = document.getElementById('permission_alert');
     
     if (!navigator.geolocation) {
         statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Geolocation not supported by your browser</span>';
         return;
     }
     
-    // Show loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
-    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Requesting location permission...</span>';
+    statusEl.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</span>';
     
-    // Clear any previous alerts
-    alertDiv.style.display = 'none';
-    
-    // Request location with user permission
     navigator.geolocation.getCurrentPosition(
-        // Success callback
+        // Success
         function(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
@@ -254,213 +137,78 @@ function requestLocation() {
             display.textContent = `📍 Location captured: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
             
             statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Location captured successfully!</span>';
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Location Captured';
-            btn.className = 'btn btn-success';
             
             // Try to get address using reverse geocoding
             getAddressFromCoordinates(lat, lng);
-            
-            locationRequested = true;
-            btn.disabled = false;
-            
-            // Fill manual address if empty
-            const manualAddress = document.getElementById('manual_address');
-            if (!manualAddress.value.trim()) {
-                manualAddress.placeholder = 'Getting address from location...';
-            }
         },
-        // Error callback
+        // Error
         function(error) {
             let errorMessage = '';
-            let userAction = '';
-            let showSettingsHelp = false;
-            
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMessage = '❌ Location access was denied.';
-                    userAction = 'Please enable location access in your browser settings:';
-                    showSettingsHelp = true;
+                    errorMessage = '❌ Location access denied. Please allow location access and refresh the page, or enter your address manually in the items description.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMessage = '❌ Location information is unavailable.';
-                    userAction = 'Please enter your address manually in the field below.';
+                    errorMessage = '❌ Location information unavailable. Please enter your address manually in the items description.';
                     break;
                 case error.TIMEOUT:
-                    errorMessage = '❌ Location request timed out.';
-                    userAction = 'Please try again or enter your address manually.';
+                    errorMessage = '❌ Location request timed out. Please try again or enter your address manually.';
                     break;
                 default:
-                    errorMessage = '❌ An unknown error occurred.';
-                    userAction = 'Please enter your address manually in the field below.';
+                    errorMessage = '❌ Error getting location. Please enter your address manually in the items description.';
                     break;
             }
-            
-            statusEl.innerHTML = `<span class="text-danger">${errorMessage}</span>`;
-            
-            // Show detailed help if permission denied
-            if (showSettingsHelp) {
-                alertDiv.style.display = 'block';
-                alertDiv.className = 'alert alert-danger mb-3';
-                document.getElementById('permission_message').innerHTML = `
-                    <strong>${errorMessage}</strong><br>
-                    ${userAction}
-                    <ul class="mt-2 mb-0">
-                        <li><strong>On iPhone/iPad:</strong> Settings → Safari → Location → Allow</li>
-                        <li><strong>On Android (Chrome):</strong> Settings → Apps → Chrome → Permissions → Location → Allow</li>
-                        <li><strong>On Android (Samsung):</strong> Settings → Apps → Samsung Internet → Permissions → Location → Allow</li>
-                        <li><strong>On Desktop:</strong> Click the lock/security icon in address bar → Allow location</li>
-                    </ul>
-                    <div class="mt-2">
-                        <small>After enabling, refresh the page and try again.</small>
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="location.reload()">
-                            <i class="fas fa-sync"></i> Refresh Page
-                        </button>
-                    </div>
-                `;
-                
-                // Focus on manual address input
-                document.getElementById('manual_address').focus();
-                document.getElementById('manual_address').placeholder = 'Please enter your full address here...';
-            } else {
-                // Focus on manual address input for other errors
-                document.getElementById('manual_address').focus();
-            }
-            
-            // Reset button
-            btn.innerHTML = '<i class="fas fa-location-arrow"></i> Try Again';
-            btn.disabled = false;
-            
-            // Make manual address required
-            document.getElementById('manual_address').required = true;
+            statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</span>`;
+            document.getElementById('location_details').style.display = 'none';
         },
         {
             enableHighAccuracy: true,
-            timeout: 15000,  // 15 seconds timeout
-            maximumAge: 60000  // Accept cached location up to 1 minute old
+            timeout: 10000,
+            maximumAge: 0
         }
     );
 }
 
 // Reverse geocoding to get address from coordinates
 function getAddressFromCoordinates(lat, lng) {
-    // Using OpenStreetMap Nominatim API with a timeout
+    // Using OpenStreetMap Nominatim API
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
     
-    // Set a timeout for the fetch
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    fetch(url, { signal: controller.signal })
+    fetch(url)
         .then(response => response.json())
         .then(data => {
-            clearTimeout(timeoutId);
             if (data && data.display_name) {
                 document.getElementById('location_address').value = data.display_name;
                 const display = document.getElementById('location_display');
                 display.textContent = `📍 ${data.display_name}`;
-                
-                // Also fill manual address field
-                const manualAddress = document.getElementById('manual_address');
-                if (!manualAddress.value.trim()) {
-                    manualAddress.value = data.display_name;
-                }
             } else {
                 document.getElementById('location_address').value = `${lat}, ${lng}`;
-                const manualAddress = document.getElementById('manual_address');
-                if (!manualAddress.value.trim()) {
-                    manualAddress.placeholder = 'Could not get address, please enter manually...';
-                }
             }
         })
         .catch(error => {
-            clearTimeout(timeoutId);
             console.error('Error getting address:', error);
             document.getElementById('location_address').value = `${lat}, ${lng}`;
         });
 }
 
-// Handle manual address input
-document.getElementById('manual_address').addEventListener('input', function() {
-    if (this.value.trim()) {
-        // Update location address field with manual entry
-        document.getElementById('location_address').value = this.value.trim();
-        
-        // Clear location fields if user manually entered address
-        document.getElementById('latitude').value = '';
-        document.getElementById('longitude').value = '';
-        
-        // Update status
-        document.getElementById('location_status').innerHTML = 
-            '<span class="text-info"><i class="fas fa-info-circle"></i> Using manually entered address</span>';
-        
-        // Hide location details if shown
-        document.getElementById('location_details').style.display = 'none';
-    }
-});
-
-// Form validation
+// Override the form validation to check if location was captured
 document.getElementById('orderForm').addEventListener('submit', function(e) {
-    const manualAddress = document.getElementById('manual_address').value.trim();
-    const locationAddress = document.getElementById('location_address').value.trim();
+    const lat = document.getElementById('latitude').value;
+    const lng = document.getElementById('longitude').value;
     
-    // Check if manual address is provided
-    if (!manualAddress && !locationAddress) {
-        e.preventDefault();
-        alert('Please enter your delivery address in the address field.');
-        document.getElementById('manual_address').focus();
-        return false;
+    if (!lat || !lng) {
+        // Show warning but allow submission
+        const confirmSubmit = confirm(
+            '⚠️ Location was not captured.\n\n' +
+            'You can still submit the order, but please include your address in the items description.\n\n' +
+            'Do you want to continue?'
+        );
+        if (!confirmSubmit) {
+            e.preventDefault();
+            return false;
+        }
     }
-    
-    // If manual address is provided but location_address is empty, use manual address
-    if (manualAddress && !locationAddress) {
-        document.getElementById('location_address').value = manualAddress;
-    }
-    
     return true;
 });
-
-// Try to auto-get location if permission already granted
-// This is a fallback for browsers that don't support Permissions API
-if (navigator.geolocation) {
-    // Check if we can get location without user prompt
-    setTimeout(function() {
-        // Only try if permission wasn't checked via Permissions API
-        if (!permissionChecked) {
-            // We'll let the user click the button instead
-            console.log('Manual location request required');
-        }
-    }, 2000);
-}
-
-// Show browser-specific help
-function showBrowserHelp() {
-    const userAgent = navigator.userAgent;
-    let helpMessage = '';
-    
-    if (/iPhone|iPad|iPod/i.test(userAgent)) {
-        helpMessage = '📱 iOS: Go to Settings → Safari → Location → Allow';
-    } else if (/Android/i.test(userAgent)) {
-        if (/Chrome/i.test(userAgent)) {
-            helpMessage = '📱 Android Chrome: Settings → Apps → Chrome → Permissions → Location → Allow';
-        } else if (/Samsung/i.test(userAgent)) {
-            helpMessage = '📱 Samsung Internet: Settings → Apps → Samsung Internet → Permissions → Location → Allow';
-        } else {
-            helpMessage = '📱 Android: Settings → Apps → [Your Browser] → Permissions → Location → Allow';
-        }
-    } else {
-        helpMessage = '💻 Desktop: Click the lock icon in address bar → Allow location';
-    }
-    
-    return helpMessage;
-}
 </script>
-
-<!-- Add a floating help button for mobile -->
-<div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-    <button type="button" class="btn btn-secondary btn-sm rounded-circle" 
-            onclick="alert('📍 Location Help:\n\n' + showBrowserHelp() + '\n\nAfter enabling location:\n1. Refresh this page\n2. Click the Get Location button')"
-            style="width: 50px; height: 50px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-        <i class="fas fa-question"></i>
-    </button>
-</div>
 {% endblock %}
