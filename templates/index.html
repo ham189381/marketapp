@@ -175,7 +175,7 @@
     {% if markets %}
         {% for market in markets %}
             <div class="col-lg-4 col-md-6">
-                <a href="{{ url_for('market_detail', market_id=market.id) }}" class="text-decoration-none">
+                <a href="{{ url_for('place_order', market_id=market.id) }}" class="text-decoration-none">
                     <div class="card market-card h-100">
                         <div class="card-stats">
                             <i class="fas fa-shopping-cart text-primary"></i> 
